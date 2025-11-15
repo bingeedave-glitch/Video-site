@@ -15,14 +15,13 @@
     }
     .video-container {
       position: relative;
-      overflow: hidden;
-      padding-top: 56.25%; /* 16:9 aspect ratio */
+      width: 100%;
       max-width: 900px;
-      margin: 0 auto;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.15);
+      height: 0;
+      padding-bottom: 56.25%; /* 16:9 ratio */
+      margin: auto;
     }
-    .video-container iframe {
+    .video-container iframe, .video-container script {
       position: absolute;
       top: 0;
       left: 0;
@@ -37,15 +36,12 @@
   <h1>Memory Video</h1>
 
   <div class="video-container">
-    <iframe 
-      src="https://cinema8.com/video/ADxEkj2X" 
-      allow="autoplay; fullscreen; microphone; camera" 
-      gesture="media" 
-      frameborder="0" 
-      webkitallowfullscreen 
-      mozallowfullscreen 
-      allowfullscreen>
-    </iframe>
+    <div class="sp-embed-player" data-id="cTXoqunFSCk">
+      <script src="https://go.screenpal.com/player/appearance/cTXoqunFSCk"></script>
+      <iframe width="100%" height="100%" style="border:0;" scrolling="no" 
+              src="https://go.screenpal.com/player/cTXoqunFSCk?width=100%&height=100%&ff=1&title=0" 
+              allowfullscreen="true"></iframe>
+    </div>
   </div>
 
 </body>
