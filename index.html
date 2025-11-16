@@ -104,32 +104,32 @@ const OMDB_KEY = "3d035420";
 
 // Add your films here
 const films = [
-  { imdb: "tt0241527", screenpal: "cTXoqunFSCk" }
+  { imdb: "tt0241527", screenpal: "cTXoqunFSCk" },
   { imdb: "tt0099785", screenpal: "cTXDX3nFWqh" }
 ];
 
-// Cache for IMDb data
 const filmDataCache = {};
 
-// Preload all IMDb data
+// Preload all IMDb data once
 async function preloadFilms() {
-  const fetches = films.map(async (film) => {
-    try {
-      const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`)
-        .then(r => r.json());
-      if (data && data.Response !== "False") {
-        filmDataCache[film.imdb] = data;
-      } else {
-        console.warn("IMDb data not found for", film.imdb);
+  await Promise.all(films.map(async film => {
+    if (!filmDataCache[film.imdb]) {
+      try {
+        const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`)
+          .then(r => r.json());
+        if (data && data.Response !== "False") {
+          filmDataCache[film.imdb] = data;
+        } else {
+          console.warn("IMDb data not found for", film.imdb);
+        }
+      } catch (e) {
+        console.error("Error fetching IMDb data for", film.imdb, e);
       }
-    } catch (e) {
-      console.error("Error fetching IMDb data for", film.imdb, e);
     }
-  });
-  await Promise.all(fetches);
+  }));
 }
 
-// Build categories after all data is loaded
+// Build category dropdown
 function buildCategories() {
   const select = document.getElementById("categorySelect");
   const genreSet = new Set(["all"]);
@@ -137,7 +137,6 @@ function buildCategories() {
     const genres = data.Genre ? data.Genre.toLowerCase().split(", ") : [];
     genres.forEach(g => genreSet.add(g));
   });
-
   select.innerHTML = "";
   genreSet.forEach(g => {
     const opt = document.createElement("option");
@@ -147,7 +146,7 @@ function buildCategories() {
   });
 }
 
-// Render films based on search/category
+// Render films (only uses preloaded data)
 function renderFilms() {
   const grid = document.getElementById("filmGrid");
   const search = document.getElementById("searchBar").value.toLowerCase();
@@ -174,14 +173,15 @@ function renderFilms() {
   });
 }
 
-// Open video player
+// Open ScreenPal video
 function openPlayer(screenpalID, info) {
   const modal = document.getElementById("playerModal");
   const container = document.getElementById("playerContainer");
   const filmInfo = document.getElementById("filmInfo");
 
   container.innerHTML = `
-    <iframe width="100%" height="500px" style="border:0;" src="https://go.screenpal.com/player/${screenpalID}?width=100%&height=100%&ff=1&title=0" allowfullscreen></iframe>
+    <iframe width="100%" height="500px" style="border:0;" 
+      src="https://go.screenpal.com/player/${screenpalID}?width=100%&height=100%&ff=1&title=0" allowfullscreen></iframe>
   `;
 
   filmInfo.innerHTML = `
@@ -194,13 +194,14 @@ function openPlayer(screenpalID, info) {
   modal.style.display = "flex";
 }
 
+// Event listeners
 document.getElementById("closeBtn").onclick = () => {
   document.getElementById("playerModal").style.display = "none";
 };
 document.getElementById("searchBar").oninput = renderFilms;
 document.getElementById("categorySelect").onchange = renderFilms;
 
-// Initialize
+// Initialize site
 (async () => {
   await preloadFilms();
   buildCategories();
