@@ -100,22 +100,15 @@
 </div>
 
 <script>
-// Your OMDb API key
 const OMDB_KEY = "3d035420";
 
-// Example film list
 const films = [
-  {
-    imdb: "tt0241527",
-    screenpal: "cTXoqunFSCk"
-  },
+  { imdb: "tt0063350", screenpal: "cTXoqunFSCk" }
 ];
 
-// Build categories dynamically
 async function buildCategories() {
   const select = document.getElementById("categorySelect");
-  const genreSet = new Set();
-  genreSet.add("all");
+  const genreSet = new Set(["all"]);
   for (const film of films) {
     const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
     if (!data || data.Response === "False") continue;
@@ -131,9 +124,6 @@ async function buildCategories() {
   });
 }
 
-buildCategories().then(() => renderFilms());
-
-// Render film list
 async function renderFilms() {
   const grid = document.getElementById("filmGrid");
   const search = document.getElementById("searchBar").value.toLowerCase();
@@ -143,9 +133,7 @@ async function renderFilms() {
   for (const film of films) {
     const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
     if (!data || data.Response === "False") continue;
-
     const genres = data.Genre ? data.Genre.toLowerCase().split(", ") : ["uncategorized"];
-
     if (category !== "all" && !genres.includes(category)) continue;
     if (search && !data.Title.toLowerCase().includes(search)) continue;
 
@@ -161,7 +149,11 @@ async function renderFilms() {
   }
 }
 
-// Open video player modal with ScreenPal embed
+async function init() {
+  await buildCategories();
+  renderFilms();
+}
+
 function openPlayer(screenpalID, info) {
   const modal = document.getElementById("playerModal");
   const container = document.getElementById("playerContainer");
@@ -184,63 +176,10 @@ function openPlayer(screenpalID, info) {
 document.getElementById("closeBtn").onclick = () => {
   document.getElementById("playerModal").style.display = "none";
 };
-
 document.getElementById("searchBar").oninput = renderFilms;
 document.getElementById("categorySelect").onchange = renderFilms;
 
-renderFilms();
-</script>
-
-</body>
-</html>
-    const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
-    if (!data || data.Response === "False") continue;
-
-    const genres = data.Genre ? data.Genre.toLowerCase().split(", ") : ["uncategorized"];
-
-    if (category !== "all" && !genres.includes(category)) continue;
-    if (search && !data.Title.toLowerCase().includes(search)) continue;
-
-    const card = document.createElement("div");
-    card.className = "film-card";
-    card.innerHTML = `
-      <img src="${data.Poster}" />
-      <h3>${data.Title}</h3>
-      <p>${data.Year}</p>
-    `;
-    card.onclick = () => openPlayer(film.screenpal, data);
-    grid.appendChild(card);
-  }
-}
-
-// Open video player modal with ScreenPal embed
-function openPlayer(screenpalID, info) {
-  const modal = document.getElementById("playerModal");
-  const container = document.getElementById("playerContainer");
-  const filmInfo = document.getElementById("filmInfo");
-
-  container.innerHTML = `
-    <iframe width="100%" height="500px" style="border:0;" src="https://go.screenpal.com/player/${screenpalID}?width=100%&height=100%&ff=1&title=0" allowfullscreen></iframe>
-  `;
-
-  filmInfo.innerHTML = `
-    <h2>${info.Title}</h2>
-    <p><strong>Year:</strong> ${info.Year}</p>
-    <p><strong>Genre:</strong> ${info.Genre}</p>
-    <p><strong>Plot:</strong> ${info.Plot}</p>
-  `;
-
-  modal.style.display = "flex";
-}
-
-document.getElementById("closeBtn").onclick = () => {
-  document.getElementById("playerModal").style.display = "none";
-};
-
-document.getElementById("searchBar").oninput = renderFilms;
-document.getElementById("categorySelect").onchange = renderFilms;
-
-renderFilms();
+init();
 </script>
 
 </body>
