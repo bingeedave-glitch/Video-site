@@ -1,48 +1,179 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Banging Films</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
+      background: #111;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    header {
       padding: 20px;
-      background: #f7f7f7;
+      background: #000;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    h1 {
-      margin-bottom: 20px;
+    #searchBar {
+      width: 60%;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
     }
-    .video-container {
-      position: relative;
+    #categorySelect {
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+    .film-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .film-card {
+      background: #222;
+      padding: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .film-card:hover {
+      background: #333;
+    }
+    .film-card img {
       width: 100%;
-      max-width: 900px;
-      height: 0;
-      padding-bottom: 56.25%; /* 16:9 ratio */
-      margin: auto;
+      border-radius: 5px;
     }
-    .video-container iframe, .video-container script {
-      position: absolute;
+    #playerModal {
+      position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      border: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+    #playerBox {
+      width: 90%;
+      max-width: 900px;
+      background: #000;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    #closeBtn {
+      background: red;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      color: #fff;
+      float: right;
     }
   </style>
 </head>
 <body>
 
-  <h1>Banging Films</h1>
+<header>
+  <input id="searchBar" placeholder="Search films..." />
+  <select id="categorySelect">
+    <option value="all">All Categories</option>
+    <option value="action">Action</option>
+    <option value="horror">Horror</option>
+    <option value="comedy">Comedy</option>
+    <option value="drama">Drama</option>
+  </select>
+</header>
 
-  <div class="video-container">
-    <div class="sp-embed-player" data-id="cTXoqunFSCk">
-      <script src="https://go.screenpal.com/player/appearance/cTXoqunFSCk"></script>
-      <iframe width="100%" height="100%" style="border:0;" scrolling="no" 
-              src="https://go.screenpal.com/player/cTXoqunFSCk?width=100%&height=100%&ff=1&title=0" 
-              allowfullscreen="true"></iframe>
-    </div>
+<div class="film-grid" id="filmGrid"></div>
+
+<div id="playerModal">
+  <div id="playerBox">
+    <button id="closeBtn">Close</button>
+    <div id="playerContainer"></div>
+    <div id="filmInfo"></div>
   </div>
+</div>
+
+<script>
+// Your OMDb API key
+const OMDB_KEY = "3d035420";
+
+// Example film list
+const films = [
+  {
+    title: "Night of the Living Dead",
+    imdb: "tt0063350",
+    category: "horror",
+    screenpal: "cTXoqunFSCk" // ScreenPal ID only
+  },
+];
+
+// Render film list
+function renderFilms() {
+  const grid = document.getElementById("filmGrid");
+  const search = document.getElementById("searchBar").value.toLowerCase();
+  const category = document.getElementById("categorySelect").value;
+  grid.innerHTML = "";
+
+  films.forEach(film => {
+    if ((category === "all" || film.category === category) && film.title.toLowerCase().includes(search)) {
+      fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`)
+        .then(res => res.json())
+        .then(data => {
+          const card = document.createElement("div");
+          card.className = "film-card";
+          card.innerHTML = `
+            <img src="${data.Poster}" />
+            <h3>${data.Title}</h3>
+            <p>${data.Year}</p>
+          `;
+          card.onclick = () => openPlayer(film.screenpal, data);
+          grid.appendChild(card);
+        });
+    }
+  });
+}
+
+// Open video player modal with ScreenPal embed
+function openPlayer(screenpalID, info) {
+  const modal = document.getElementById("playerModal");
+  const container = document.getElementById("playerContainer");
+  const filmInfo = document.getElementById("filmInfo");
+
+  container.innerHTML = `
+    <iframe width="100%" height="500px" style="border:0;" src="https://go.screenpal.com/player/${screenpalID}?width=100%&height=100%&ff=1&title=0" allowfullscreen></iframe>
+  `;
+
+  filmInfo.innerHTML = `
+    <h2>${info.Title}</h2>
+    <p><strong>Year:</strong> ${info.Year}</p>
+    <p><strong>Genre:</strong> ${info.Genre}</p>
+    <p><strong>Plot:</strong> ${info.Plot}</p>
+  `;
+
+  modal.style.display = "flex";
+}
+
+document.getElementById("closeBtn").onclick = () => {
+  document.getElementById("playerModal").style.display = "none";
+};
+
+document.getElementById("searchBar").oninput = renderFilms;
+document.getElementById("categorySelect").onchange = renderFilms;
+
+renderFilms();
+</script>
 
 </body>
 </html>
