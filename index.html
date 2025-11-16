@@ -86,13 +86,7 @@
 
 <header>
   <input id="searchBar" placeholder="Search films..." />
-  <select id="categorySelect">
-    <option value="all">All Categories</option>
-    <option value="action">Action</option>
-    <option value="horror">Horror</option>
-    <option value="comedy">Comedy</option>
-    <option value="drama">Drama</option>
-  </select>
+  <select id="categorySelect"></select>
 </header>
 
 <div class="film-grid" id="filmGrid"></div>
@@ -112,37 +106,59 @@ const OMDB_KEY = "3d035420";
 // Example film list
 const films = [
   {
-    title: "Night of the Living Dead",
-    imdb: "tt0063350",
-    category: "horror",
-    screenpal: "cTXoqunFSCk" // ScreenPal ID only
+    imdb: "tt0241527",
+    screenpal: "cTXoqunFSCk"
   },
 ];
 
+// Build categories dynamically
+async function buildCategories() {
+  const select = document.getElementById("categorySelect");
+  const genreSet = new Set();
+  genreSet.add("all");
+  for (const film of films) {
+    const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
+    if (!data || data.Response === "False") continue;
+    const genres = data.Genre ? data.Genre.toLowerCase().split(", ") : [];
+    genres.forEach(g => genreSet.add(g));
+  }
+  select.innerHTML = "";
+  genreSet.forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g.charAt(0).toUpperCase() + g.slice(1);
+    select.appendChild(opt);
+  });
+}
+
+buildCategories();
+
 // Render film list
-function renderFilms() {
+async function renderFilms() {
   const grid = document.getElementById("filmGrid");
   const search = document.getElementById("searchBar").value.toLowerCase();
   const category = document.getElementById("categorySelect").value;
   grid.innerHTML = "";
 
-  films.forEach(film => {
-    if ((category === "all" || film.category === category) && film.title.toLowerCase().includes(search)) {
-      fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`)
-        .then(res => res.json())
-        .then(data => {
-          const card = document.createElement("div");
-          card.className = "film-card";
-          card.innerHTML = `
-            <img src="${data.Poster}" />
-            <h3>${data.Title}</h3>
-            <p>${data.Year}</p>
-          `;
-          card.onclick = () => openPlayer(film.screenpal, data);
-          grid.appendChild(card);
-        });
-    }
-  });
+  for (const film of films) {
+    const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
+    if (!data || data.Response === "False") continue;
+
+    const genres = data.Genre ? data.Genre.toLowerCase().split(", ") : ["uncategorized"];
+
+    if (category !== "all" && !genres.includes(category)) continue;
+    if (search && !data.Title.toLowerCase().includes(search)) continue;
+
+    const card = document.createElement("div");
+    card.className = "film-card";
+    card.innerHTML = `
+      <img src="${data.Poster}" />
+      <h3>${data.Title}</h3>
+      <p>${data.Year}</p>
+    `;
+    card.onclick = () => openPlayer(film.screenpal, data);
+    grid.appendChild(card);
+  }
 }
 
 // Open video player modal with ScreenPal embed
