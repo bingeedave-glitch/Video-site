@@ -101,32 +101,42 @@
 
 <script>
 const OMDB_KEY = "3d035420";
+
+// Add your films here
 const films = [
   { imdb: "tt0241527", screenpal: "cTXoqunFSCk" }
   { imdb: "tt0099785", screenpal: "cTXDX3nFWqh" }
 ];
 
-// Cache to prevent duplicate fetches
+// Cache for IMDb data
 const filmDataCache = {};
 
-async function buildCategories() {
+// Preload all IMDb data
+async function preloadFilms() {
+  const fetches = films.map(async (film) => {
+    try {
+      const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`)
+        .then(r => r.json());
+      if (data && data.Response !== "False") {
+        filmDataCache[film.imdb] = data;
+      } else {
+        console.warn("IMDb data not found for", film.imdb);
+      }
+    } catch (e) {
+      console.error("Error fetching IMDb data for", film.imdb, e);
+    }
+  });
+  await Promise.all(fetches);
+}
+
+// Build categories after all data is loaded
+function buildCategories() {
   const select = document.getElementById("categorySelect");
   const genreSet = new Set(["all"]);
-  for (const film of films) {
-    let data = filmDataCache[film.imdb];
-    if (!data) {
-      try {
-        data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
-        if (!data || data.Response === "False") continue;
-        filmDataCache[film.imdb] = data;
-      } catch(e) {
-        console.error("Error fetching film data", e);
-        continue;
-      }
-    }
+  Object.values(filmDataCache).forEach(data => {
     const genres = data.Genre ? data.Genre.toLowerCase().split(", ") : [];
     genres.forEach(g => genreSet.add(g));
-  }
+  });
 
   select.innerHTML = "";
   genreSet.forEach(g => {
@@ -137,28 +147,20 @@ async function buildCategories() {
   });
 }
 
-async function renderFilms() {
+// Render films based on search/category
+function renderFilms() {
   const grid = document.getElementById("filmGrid");
   const search = document.getElementById("searchBar").value.toLowerCase();
   const category = document.getElementById("categorySelect").value;
   grid.innerHTML = "";
 
-  for (const film of films) {
-    let data = filmDataCache[film.imdb];
-    if (!data) {
-      try {
-        data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
-        if (!data || data.Response === "False") continue;
-        filmDataCache[film.imdb] = data;
-      } catch(e) {
-        console.error("Error fetching film data", e);
-        continue;
-      }
-    }
+  films.forEach(film => {
+    const data = filmDataCache[film.imdb];
+    if (!data) return;
 
     const genres = data.Genre ? data.Genre.toLowerCase().split(", ") : ["uncategorized"];
-    if (category !== "all" && !genres.includes(category)) continue;
-    if (search && !data.Title.toLowerCase().includes(search)) continue;
+    if (category !== "all" && !genres.includes(category)) return;
+    if (search && !data.Title.toLowerCase().includes(search)) return;
 
     const card = document.createElement("div");
     card.className = "film-card";
@@ -169,9 +171,10 @@ async function renderFilms() {
     `;
     card.onclick = () => openPlayer(film.screenpal, data);
     grid.appendChild(card);
-  }
+  });
 }
 
+// Open video player
 function openPlayer(screenpalID, info) {
   const modal = document.getElementById("playerModal");
   const container = document.getElementById("playerContainer");
@@ -194,16 +197,15 @@ function openPlayer(screenpalID, info) {
 document.getElementById("closeBtn").onclick = () => {
   document.getElementById("playerModal").style.display = "none";
 };
-
 document.getElementById("searchBar").oninput = renderFilms;
 document.getElementById("categorySelect").onchange = renderFilms;
 
-async function init() {
-  await buildCategories();
+// Initialize
+(async () => {
+  await preloadFilms();
+  buildCategories();
   renderFilms();
-}
-
-init();
+})();
 </script>
 
 </body>
