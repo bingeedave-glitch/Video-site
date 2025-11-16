@@ -131,7 +131,7 @@ async function buildCategories() {
   });
 }
 
-buildCategories();
+buildCategories().then(() => renderFilms());
 
 // Render film list
 async function renderFilms() {
@@ -141,6 +141,58 @@ async function renderFilms() {
   grid.innerHTML = "";
 
   for (const film of films) {
+    const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
+    if (!data || data.Response === "False") continue;
+
+    const genres = data.Genre ? data.Genre.toLowerCase().split(", ") : ["uncategorized"];
+
+    if (category !== "all" && !genres.includes(category)) continue;
+    if (search && !data.Title.toLowerCase().includes(search)) continue;
+
+    const card = document.createElement("div");
+    card.className = "film-card";
+    card.innerHTML = `
+      <img src="${data.Poster}" />
+      <h3>${data.Title}</h3>
+      <p>${data.Year}</p>
+    `;
+    card.onclick = () => openPlayer(film.screenpal, data);
+    grid.appendChild(card);
+  }
+}
+
+// Open video player modal with ScreenPal embed
+function openPlayer(screenpalID, info) {
+  const modal = document.getElementById("playerModal");
+  const container = document.getElementById("playerContainer");
+  const filmInfo = document.getElementById("filmInfo");
+
+  container.innerHTML = `
+    <iframe width="100%" height="500px" style="border:0;" src="https://go.screenpal.com/player/${screenpalID}?width=100%&height=100%&ff=1&title=0" allowfullscreen></iframe>
+  `;
+
+  filmInfo.innerHTML = `
+    <h2>${info.Title}</h2>
+    <p><strong>Year:</strong> ${info.Year}</p>
+    <p><strong>Genre:</strong> ${info.Genre}</p>
+    <p><strong>Plot:</strong> ${info.Plot}</p>
+  `;
+
+  modal.style.display = "flex";
+}
+
+document.getElementById("closeBtn").onclick = () => {
+  document.getElementById("playerModal").style.display = "none";
+};
+
+document.getElementById("searchBar").oninput = renderFilms;
+document.getElementById("categorySelect").onchange = renderFilms;
+
+renderFilms();
+</script>
+
+</body>
+</html>
     const data = await fetch(`https://www.omdbapi.com/?i=${film.imdb}&apikey=${OMDB_KEY}`).then(r => r.json());
     if (!data || data.Response === "False") continue;
 
